@@ -1,0 +1,10 @@
+name: env_download
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12.3
+  - requests
+  - pandas            
+  - tqdm
+  - httpx
