@@ -24,3 +24,5 @@ rsconnect/
 secret/
 .DS_Store
 Thumbs.db
+*.zip
+*.parquet
