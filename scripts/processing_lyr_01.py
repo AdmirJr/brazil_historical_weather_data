@@ -142,7 +142,7 @@ if not Path(f"data/processed_01/{year}_data.parquet").exists():
             .str.replace("-9999",None)
             .cast(pl.Float32, strict=False),
         pl.col(col_categorical)
-            .cast(pl.Categorical)
+            .cast(pl.String)
     ])
 
-    df_year.write_parquet("data/processed_01/"+f"{year}_data.parquet")
+    df_year.write_parquet("data/processed_01/"+f"{year}_data.parquet", use_pyarrow=True)
