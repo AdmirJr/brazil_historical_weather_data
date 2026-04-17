@@ -3,6 +3,7 @@ library(arrow)
 library(dplyr)
 library(ggplot2)
 library(stringr)
+library(lubridate)
 
 # UI: Interface do Usuário
 ui <- fluidPage(
@@ -12,24 +13,22 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       selectInput(
-        inputId = "test_change",
-        label = "test_change",
-        choices = c("test1","test2")
-      ),
-      selectInput(
         inputId = "region",
         label = "Region",
-        choices = c("S")
+        choices = c("S","SE","N","NE","CO"),
+        multiple = TRUE
       ),
       selectInput(
         inputId = "uf",
         label = "UF",
-        choices = c("PR")
+        choices = NULL,
+        multiple = TRUE
       ),
       selectInput(
         inputId = "station",
         label = "Station",
-        choices = c("FOZ DO IGUACU"),
+        choices = NULL, 
+        multiple = TRUE
       ),
       dateRangeInput(
         inputId = "date",
@@ -64,6 +63,43 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   dataset <- arrow::open_dataset("data/processed_01/") 
+  station_data <- arrow::read_parquet("data/station_data.parquet")
+  
+  observeEvent(
+    {
+      input$region
+    },
+    {
+      reg_states <- station_data %>%
+        filter(region %in% reactiveValuesToList(input)$region) %>%
+        pull(uf) %>%
+        unique()
+      
+      updateSelectInput(
+        session,
+        inputId = "uf",
+        choices = reg_states
+      )
+    }
+  )
+  
+  observeEvent(
+    {
+      input$uf
+    },
+    {
+      uf_stations <- station_data %>%
+        filter(uf %in% input$uf) %>%
+        pull(station) %>%
+        unique()
+      
+      updateSelectInput(
+        session,
+        inputId = "station",
+        choices = uf_stations
+      )
+    }
+  )
   
   observeEvent(
     {
@@ -73,7 +109,7 @@ server <- function(input, output, session) {
       input$region
     },
     {
-      lad <- last_day_available(dataset, input)
+      lad <- last_day_available(station_data, input)
       
       updateDateRangeInput(
         session,
@@ -89,8 +125,9 @@ server <- function(input, output, session) {
   filtered_data <- reactive({
     source("scripts/app_aux/granularity_control.R")
     source("scripts/app_aux/last_day_available.R")
+    source("scripts/app_aux/level_summ.R")
     
-    shiny::req(input$variable, input$date, input$station, input$uf, input$region, input$granularity)
+    shiny::req(input$variable, input$date, input$region, input$granularity)
     
     print(input$granularity)
     
@@ -99,20 +136,9 @@ server <- function(input, output, session) {
       "Daily" = gran_daily(dataset, input),
       "Weekly" = gran_weekly(dataset, input),
       "Monthly" = gran_monthly(dataset, input)
-    )
+    ) 
     
-    
-    # df <- dataset %>%
-    #   dplyr::filter(
-    #     region == input$region,
-    #     uf == input$uf,
-    #     station == input$station,
-    #     date >= input$date[[1]],
-    #     date <= input$date[[2]]) %>% 
-    #   dplyr::select(date, hour, !!rlang::sym(input$variable)) %>%
-    #   dplyr::collect() %>% 
-    #   dplyr::arrange(hour)
-    # 
+    #df <- summarise_level(df, input)
     
     if (input$granularity != "Hourly") {
       var_plot <- paste0(input$variable, "_", input$granularity)
@@ -127,17 +153,6 @@ server <- function(input, output, session) {
       "Weekly" = "week_start",
       "Monthly" = "month_start"
     )
-    
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_var]], y = .data[[var_plot]])) +
-      ggplot2::geom_line(color = "#e67e22", linewidth = 1) +
-      ggplot2::geom_point(color = "#d35400") + 
-      ggplot2::theme_minimal(base_size = 14) +
-      ggplot2::labs(
-        title = paste0(input$granularity,": ", input$variable),
-        subtitle = paste(input$day, "/", input$month, "/", input$year),
-        x = stringr::str_to_sentence(x_var) %>% str_replace("_"," "),
-        y = input$variable
-      )
     
     p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[x_var]], y = .data[[var_plot]])) +
       ggplot2::geom_line(color = "#e67e22", linewidth = 1) +

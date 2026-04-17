@@ -109,6 +109,7 @@ if not Path(f"data/processed_01/{year}_data.parquet").exists():
     col_float32 = [
         "air_temperature_max_last_hour (°C)",
         "air_temperature_min_last_hour (°C)",
+        "air_temperature (°C)",
         "dew_temperature (°C)",
         "dew_temperature_max_last_hour (°C)",
         "dew_temperature_min_last_hour (°C)",

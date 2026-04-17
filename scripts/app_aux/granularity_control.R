@@ -2,7 +2,6 @@
 library(lubridate)
 
 gran_daily <- function(dataset, input){
-  #browser()
   
   input <- reactiveValuesToList(input)
   
@@ -14,9 +13,9 @@ gran_daily <- function(dataset, input){
   
   df <- dataset %>%
     dplyr::filter(
-      region == input$region,
-      uf == input$uf,
-      station == input$station,
+      region %in% input$region,
+      uf %in% input$uf,
+      station %in% input$station,
       date >= input$date[[1]],
       date <= input$date[[2]]
     ) %>% 
@@ -34,8 +33,6 @@ gran_daily <- function(dataset, input){
 
 
 gran_hourly <- function(dataset, input){
-  #browser()
-  
   input <- reactiveValuesToList(input)
   
   #debug
@@ -46,20 +43,19 @@ gran_hourly <- function(dataset, input){
   
   df <- dataset %>%
     dplyr::filter(
-      region == input$region,
-      uf == input$uf,
-      station == input$station,
+      region %in% input$region,
+      uf %in% input$uf,
+      station %in% input$station,
       date >= input$date[[1]],
       date <= input$date[[2]]
     ) %>% 
-    dplyr::select(date, hour, !!var) %>%
+    dplyr::select(region, uf, station, date, hour, !!var) %>%
     dplyr::collect() %>% 
     dplyr::mutate(
-      hour = as.character(hour),
-      hour = gsub("'|\"", ":", hour),  # caso venha no formato estranho
+      hour = as.character(hms::as.hms(hour)),
       datetime = lubridate::ymd(date) + lubridate::hms(hour)
     ) %>%
-    dplyr::select(datetime, !!var_name) %>%
+    dplyr::select(region, uf, station, datetime, !!var_name) %>%
     dplyr::arrange(datetime)
   
   return(df)
@@ -78,6 +74,9 @@ gran_weekly <- function(dataset, input){
   
   df <- dataset %>%
     dplyr::filter(
+      region %in% input$region,
+      uf %in% input$uf,
+      station %in% input$station,
       date >= input$date[[1]],
       date <= input$date[[2]]
     ) %>%
@@ -108,6 +107,9 @@ gran_monthly <- function(dataset, input){
   
   df <- dataset %>%
     dplyr::filter(
+      region %in% input$region,
+      uf %in% input$uf,
+      station %in% input$station,
       date >= input$date[[1]],
       date <= input$date[[2]]
     ) %>%
